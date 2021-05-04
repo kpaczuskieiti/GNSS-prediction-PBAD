@@ -20,12 +20,11 @@ class DataWrapper():
         data = raw_data
         data = data.drop(data.columns[[0, 1, 6, 7, 10]], axis=1)
         data = data.loc[(data['Dostępność (Availability).1'] >= 0.99) & (data['Dostępność (Availability)'] >= 0.99)]
-        (train, test) = train_test_split(data, test_size=0.15, random_state=42)
 
-        self.input_data_train = self.normalize_data(train.iloc[:,:7])
-        self.output_data_train = train.iloc[:,-8:]
-        self.input_data_test = self.normalize_data(test.iloc[:,:7])
-        self.output_data_test = test.iloc[:,-8:]
+        self.input_data_train = self.normalize_data(data.iloc[:,:7])
+        self.output_data_train = data.iloc[:,-8:]
+        self.input_data_test = self.normalize_data(data.iloc[:,:7])
+        self.output_data_test = data.iloc[:,-4:]
 
         # self.input_data = self.normalize_data(input_data)
         # self.output_data = output_data
@@ -42,21 +41,22 @@ class DataWrapper():
     def create_model(self):
         self.model = keras.Sequential(
             [
-                Dense(16, activations.relu, input_shape=(7,)),
-                Dense(16, activations.relu),
-                Dense(16, activations.relu),
-                Dense(16, activations.relu),
-                Dense(2, activation=activations.linear),
+                Dense(128, activations.relu, input_shape=(7,)),
+                Dense(128, activations.relu),
+                Dense(128, activations.relu),
+                Dense(128, activations.relu),
+                Dense(128, activations.relu),
+                Dense(1, activation=activations.linear),
             ]
         )
-        self.model.compile(optimizer=optimizers.Adam(), loss=losses.MeanSquaredError(),metrics=['accuracy'])
+        self.model.compile(optimizer=optimizers.Adam(), loss=losses.MeanSquaredError(), metrics=[tf.keras.metrics.MeanSquaredError()])
 
     def train(self):
-        train_output = (self.output_data_train.iloc[:, :2])
-        print(train_output)
-        self.model.fit(self.input_data_train.to_numpy(), train_output.to_numpy(), validation_data=(self.input_data_test.to_numpy(), (self.output_data_test.iloc[:, :2]).to_numpy()), shuffle=True, epochs=250, verbose=2)
+        train_output = (self.output_data_train.iloc[:, :1])
+        print(self.input_data_train)
+        self.model.fit(self.input_data_train.to_numpy(), train_output.to_numpy(), validation_data=(self.input_data_test.to_numpy(), (self.output_data_test.iloc[:, :1]).to_numpy()), shuffle=True, epochs=400, verbose=2)
         print(self.model.predict(self.input_data_test.to_numpy()))
-        print(self.output_data_test)
+        print(self.output_data_test.iloc[:, :1])
         pass
 
 
