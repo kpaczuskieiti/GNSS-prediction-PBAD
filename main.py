@@ -2,6 +2,7 @@ import pandas as pd
 import gnsspy as gp
 import georinex as gr
 from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
 import levenberg_marquardt.levenberg_marquardt as lm
 import tensorflow as tf
 from tensorflow import keras
@@ -16,16 +17,18 @@ class DataWrapper():
 
     def __init__(self, file_url: str):
         raw_data = pd.read_csv(file_url)
-        data = raw_data.loc[raw_data['Stacja'] == '352200375WARSZAWA-OKĘCIE']
+        data = raw_data
         data = data.drop(data.columns[[0, 1, 6, 7, 10]], axis=1)
         data = data.loc[(data['Dostępność (Availability).1'] >= 0.99) & (data['Dostępność (Availability)'] >= 0.99)]
+        (train, test) = train_test_split(data, test_size=0.15, random_state=42)
 
-        input_data = data.iloc[:,:7]
-        output_data = data.iloc[:,-8:]
-        print(output_data.tail(1))
+        self.input_data_train = self.normalize_data(train.iloc[:,:7])
+        self.output_data_train = train.iloc[:,-8:]
+        self.input_data_test = self.normalize_data(test.iloc[:,:7])
+        self.output_data_test = test.iloc[:,-8:]
 
-        self.input_data = self.normalize_data(input_data)
-        self.output_data = output_data
+        # self.input_data = self.normalize_data(input_data)
+        # self.output_data = output_data
         # print(data[:2], data.columns)
         # print(normalized_data[:2])
 
@@ -37,24 +40,23 @@ class DataWrapper():
         return normalized_data
 
     def create_model(self):
-        model = keras.Sequential(
+        self.model = keras.Sequential(
             [
-                Dense(16, activations.sigmoid, input_shape=(7,)),
-                Dense(16, activations.sigmoid),
-                Dense(16, activations.sigmoid),
-                Dense(16, activations.sigmoid),
-                Dense(2, activations.linear),
+                Dense(16, activations.relu, input_shape=(7,)),
+                Dense(16, activations.relu),
+                Dense(16, activations.relu),
+                Dense(16, activations.relu),
+                Dense(2, activation=activations.linear),
             ]
         )
-        self.model = lm.ModelWrapper(model)
-        self.model.compile(optimizer=optimizers.Adam(), loss=lm.MeanSquaredError(),metrics=['accuracy'])
+        self.model.compile(optimizer=optimizers.Adam(), loss=losses.MeanSquaredError(),metrics=['accuracy'])
 
     def train(self):
-        validation_input = self.input_data.tail(1)
-        print(self.output_data.iloc[:-1].iloc[:, :2])
-        self.model.fit(self.input_data.iloc[:-1].to_numpy(), self.output_data.iloc[:-1].iloc[:, :2].to_numpy(), shuffle=True, epochs=100, verbose=2, validation_split=0.2)
-        print(self.model.predict(validation_input.to_numpy()))
-        print(validation_input)
+        train_output = (self.output_data_train.iloc[:, :2])
+        print(train_output)
+        self.model.fit(self.input_data_train.to_numpy(), train_output.to_numpy(), validation_data=(self.input_data_test.to_numpy(), (self.output_data_test.iloc[:, :2]).to_numpy()), shuffle=True, epochs=250, verbose=2)
+        print(self.model.predict(self.input_data_test.to_numpy()))
+        print(self.output_data_test)
         pass
 
 
