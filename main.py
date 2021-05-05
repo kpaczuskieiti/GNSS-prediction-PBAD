@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, activations, optimizers, losses
 from tensorflow.keras.layers import Dense, Flatten
+import matplotlib.pyplot as plt
 
 class DataWrapper():
     raw_data: pd.DataFrame
@@ -49,14 +50,23 @@ class DataWrapper():
                 Dense(1, activation=activations.linear),
             ]
         )
-        self.model.compile(optimizer=optimizers.Adam(), loss=losses.MeanSquaredError(), metrics=[tf.keras.metrics.MeanSquaredError()])
+        self.model.compile(optimizer=optimizers.Adam(), loss=losses.MeanAbsoluteError(), metrics=['mae'])
 
     def train(self):
         train_output = (self.output_data_train.iloc[:, :1])
         print(self.input_data_train)
-        self.model.fit(self.input_data_train.to_numpy(), train_output.to_numpy(), validation_data=(self.input_data_test.to_numpy(), (self.output_data_test.iloc[:, :1]).to_numpy()), shuffle=True, epochs=400, verbose=2)
-        print(self.model.predict(self.input_data_test.to_numpy()))
-        print(self.output_data_test.iloc[:, :1])
+        history = self.model.fit(self.input_data_train.to_numpy(), train_output.to_numpy(), validation_data=(self.input_data_test.to_numpy(), (self.output_data_test.iloc[:, :1]).to_numpy()), shuffle=True, epochs=300)
+        def plot_loss(history):
+            plt.figure(1)
+            plt.plot(history.history['loss'], label='loss')
+            plt.plot(history.history['val_loss'], label='val_loss')
+            plt.ylim([0, 2])
+            plt.xlabel('Epoch')
+            plt.ylabel('Error [HNSE]')
+            plt.legend()
+            plt.grid(True)
+            plt.show()
+        plot_loss(history)
         pass
 
 
