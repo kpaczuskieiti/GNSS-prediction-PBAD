@@ -66,7 +66,23 @@ class DataWrapper():
             plt.legend()
             plt.grid(True)
             plt.show()
+        def plot_hnse(x,y, column = 'Ciśnienie'):
+            plt.figure(2)
+            plt.scatter(self.input_data_train[column], train_output, label='Data')
+            plt.plot(x[column], y, color='k', label='Predictions')
+            plt.xlabel(column)
+            plt.ylabel('HNSE')
+            plt.legend()
+            plt.show()
         plot_loss(history)
+        result = self.model.predict(self.input_data_test)
+        plot_hnse(self.input_data_test, result)
+
+        error = result - self.output_data_test.iloc[:, :1].to_numpy()
+        plt.hist(error, bins=25)
+        plt.xlabel('Prediction Error [HNSE]')
+        _ = plt.ylabel('Count')
+        plt.show()
         pass
 
 
